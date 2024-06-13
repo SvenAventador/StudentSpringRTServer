@@ -6,6 +6,7 @@ const {
     FormOfParticipation, Application, ApplicationParticipant, ApplicationTechnicalGroup
 } = require("../database");
 const {Op} = require("sequelize");
+const bcrypt = require("bcrypt");
 
 class ApplicationDataController {
     async getParticipant(req, res, next) {

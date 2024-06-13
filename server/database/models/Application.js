@@ -42,7 +42,7 @@ const Application = sequelize.define('application', {
     },
     teamName: {
         type: DataTypes.TEXT,
-        allowNull: false
+        allowNull: true
     }
 });
 

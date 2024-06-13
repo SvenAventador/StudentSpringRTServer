@@ -1,12 +1,20 @@
 const ErrorHandler = require("../errors/error");
-const {Profile, Participant, AccountStatus, ParticipantComment, Application, ApplicationParticipant,
-    ApplicationTechnicalGroup, ApplicationComment, ApplicationStatus,
+const {
+    Profile,
+    Participant,
+    AccountStatus,
+    ParticipantComment,
+    Application,
+    ApplicationParticipant,
+    ApplicationTechnicalGroup,
+    ApplicationComment,
+    ApplicationStatus,
     Nomination,
     FormOfParticipation,
     Direction,
-    ApplicationDocument, AdminDocument
+    AdminDocument
 } = require("../database");
-const {Op, Sequelize, col} = require("sequelize");
+
 const {
     TableRow,
     TableCell,
@@ -20,9 +28,10 @@ const {
 } = require("docx");
 const Validation = require("../func/validation");
 const uuid = require("uuid");
-const {join} = require("path");
+const {
+    join
+} = require("path");
 const fs = require("fs");
-const moment = require("moment/moment");
 
 class AdminController {
     async getAllProfile(req, res, next) {
@@ -105,11 +114,13 @@ class AdminController {
                     where: {
                         participantId: id
                     }
-                });
+                })
+
                 if (existingComment) {
                     existingComment.status = status;
                     await existingComment.save();
-                } else {
+                }
+                else {
                     await ParticipantComment.create({
                         status: status,
                         participantId: participant.id
@@ -142,7 +153,6 @@ class AdminController {
             await application.save();
 
             if (parseInt(application.applicationStatusId) === 3) {
-                console.log('лох')
                 const existingComment = await ApplicationComment.findOne({
                     where: {
                         applicationId: id
@@ -169,6 +179,7 @@ class AdminController {
     async createDocument(req, res, next) {
         const {profileId, userId} = req.query;
         try {
+            const profile = await Profile.findOne({where: {userId: profileId}})
             const directions = [
                 {id: 1, name: 'Вокальное'},
                 {id: 2, name: 'Инструментальное'},
@@ -179,34 +190,13 @@ class AdminController {
                 {id: 7, name: 'Медиа'},
                 {id: 8, name: 'Видео'},
                 {id: 9, name: 'Арт'}
-            ];
-
-            const allVocal = await Application.findAndCountAll({
-                where: {
-                    directionId: 1,
-                    profileId: profileId
-                },
-                include: [
-                    {
-                        model: ApplicationParticipant,
-                        include: Participant
-                    },
-                    {
-                        model: ApplicationTechnicalGroup,
-                        include: Participant
-                    }
-                ]
-            })
+            ]
 
             const allApplications = await Promise.all(directions.map(direction =>
                 Application.findAll({
                     where: {
                         directionId: direction.id,
-                        profileId: profileId,
-                        [Op.and]: [
-                            Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                            Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
-                        ]
+                        profileId: profile.id
                     },
                     include: [
                         {model: Nomination},
@@ -298,13 +288,13 @@ class AdminController {
                     }));
 
                     applications.forEach((app, appIndex) => {
-                        const collectiveName = app.form_participation.form === 'Соло' ? `${app.application_participants[0].participant.surname || ''} ${app.application_participants[0].participant.name || ''} ${app.application_participants[0].participant.patronymic || ''}` : app.teamName;
+                        const collectiveName = app.form_participation.form === 'Соло' ? `${app?.application_participants[0]?.participant?.surname || ''} ${app?.application_participants[0]?.participant?.name || ''} ${app?.application_participants[0]?.participant?.patronymic || ''}` : app.teamName;
                         rows.push(new TableRow({
                             children: [
                                 new TableCell({
                                     children: [new Paragraph({
                                         children: [new TextRun({
-                                            text: `${app.form_participation.form === 'Соло' ? collectiveName : `«${collectiveName}»`}, ${app.nomination.nomination} (${app.form_participation.form}), «${app.name}»`,
+                                            text: `${app.form_participation.form === 'Соло' ? collectiveName : `«${collectiveName}»`} ${app.nomination.nomination} (${app.form_participation.form}), «${app.name}»`,
                                             size: 28,
                                             font: "Times New Roman",
                                             italics: true
@@ -316,153 +306,157 @@ class AdminController {
                             ]
                         }));
 
-                        app.application_participants.forEach((participant, partIndex) => {
-                            rows.push(new TableRow({
-                                children: [
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: `${partIndex + 1}.`,
-                                                size: 28,
-                                                font: "Times New Roman"
-                                            })],
-                                            alignment: AlignmentType.LEFT
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: `${participant.participant?.surname || ''} ${participant.participant?.name || ''} ${participant.participant?.patronymic || ''}`,
-                                                size: 28,
-                                                font: "Times New Roman"
-                                            })]
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: `${participant.participant?.birthday || ''}`,
-                                                size: 28,
-                                                font: "Times New Roman"
-                                            })]
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: `${participant.participant?.specialization || ''}`,
-                                                size: 28,
-                                                font: "Times New Roman"
-                                            })]
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [
-                                                new TextRun({
-                                                    text: `${participant.participant?.phone || ''}`,
+                        if (applications.some(app => app.application_technical_groups && app.application_technical_groups.length > 0)) {
+                            app.application_participants.forEach((participant, partIndex) => {
+                                rows.push(new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: `${partIndex + 1}.`,
                                                     size: 28,
                                                     font: "Times New Roman"
-                                                })
-                                            ]
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: '',
-                                                size: 28,
-                                                font: "Times New Roman"
+                                                })],
+                                                alignment: AlignmentType.LEFT
                                             })]
-                                        })]
-                                    })
-                                ]
-                            }))
-                        });
-                    });
-
-                    rows.push(new TableRow({
-                        children: [
-                            new TableCell({
-                                children: [new Paragraph({
-                                    alignment: AlignmentType.CENTER,
-                                    children: [new TextRun({
-                                        text: `Данные руководителей, технической группы, аккомпаниаторов, дирижеров **`,
-                                        size: 28,
-                                        font: "Times New Roman",
-                                        italics: true
-                                    })]
-                                })],
-                                columnSpan: 6
-                            })
-                        ]
-                    }));
-
-                    applications.forEach((app, appIndex) => {
-                        app.application_technical_groups.forEach((participant, partIndex) => {
-                            rows.push(new TableRow({
-                                children: [
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: `${partIndex + 1}.`,
-                                                size: 28,
-                                                font: "Times New Roman"
-                                            })],
-                                            alignment: AlignmentType.LEFT
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: `${participant.participant?.surname || ''} ${participant.participant?.name || ''} ${participant.participant?.patronymic || ''}`,
-                                                size: 28,
-                                                font: "Times New Roman"
-                                            })]
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: `${participant.participant?.birthday || ''}`,
-                                                size: 28,
-                                                font: "Times New Roman"
-                                            })]
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: `${participant.dataValues.participant.dataValues.positionOrStudyDocumen || ''}`,
-                                                size: 28,
-                                                font: "Times New Roman"
-                                            })]
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [
-                                                new TextRun({
-                                                    text: `${participant.participant?.phone}`,
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: `${participant.participant?.surname || ''} ${participant.participant?.name || ''} ${participant.participant?.patronymic || ''}`,
                                                     size: 28,
                                                     font: "Times New Roman"
-                                                })
-                                            ]
-                                        })]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph({
-                                            children: [new TextRun({
-                                                text: '',
-                                                size: 28,
-                                                font: "Times New Roman"
+                                                })]
                                             })]
-                                        })]
-                                    })
-                                ]
-                            }))
-                        });
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: `${participant.participant?.birthday || ''}`,
+                                                    size: 28,
+                                                    font: "Times New Roman"
+                                                })]
+                                            })]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: `${participant.participant?.specialization || ''}`,
+                                                    size: 28,
+                                                    font: "Times New Roman"
+                                                })]
+                                            })]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [
+                                                    new TextRun({
+                                                        text: `${participant.participant?.phone || ''}`,
+                                                        size: 28,
+                                                        font: "Times New Roman"
+                                                    })
+                                                ]
+                                            })]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: '',
+                                                    size: 28,
+                                                    font: "Times New Roman"
+                                                })]
+                                            })]
+                                        })
+                                    ]
+                                }))
+                            });
+                        }
                     });
+
+                    if (applications.some(app => app.application_technical_groups && app.application_technical_groups.length > 0)) {
+                        rows.push(new TableRow({
+                            children: [
+                                new TableCell({
+                                    children: [new Paragraph({
+                                        alignment: AlignmentType.CENTER,
+                                        children: [new TextRun({
+                                            text: `Данные руководителей, технической группы, аккомпаниаторов, дирижеров **`,
+                                            size: 28,
+                                            font: "Times New Roman",
+                                            italics: true
+                                        })]
+                                    })],
+                                    columnSpan: 6
+                                })
+                            ]
+                        }));
+
+                        applications.forEach((app, appIndex) => {
+                            app.application_technical_groups.forEach((participant, partIndex) => {
+                                rows.push(new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: `${partIndex + 1}.`,
+                                                    size: 28,
+                                                    font: "Times New Roman"
+                                                })],
+                                                alignment: AlignmentType.LEFT
+                                            })]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: `${participant.participant?.surname || ''} ${participant.participant?.name || ''} ${participant.participant?.patronymic || ''}`,
+                                                    size: 28,
+                                                    font: "Times New Roman"
+                                                })]
+                                            })]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: `${participant.participant?.birthday || ''}`,
+                                                    size: 28,
+                                                    font: "Times New Roman"
+                                                })]
+                                            })]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: `${participant.dataValues.participant.dataValues.positionOrStudyDocumen || ''}`,
+                                                    size: 28,
+                                                    font: "Times New Roman"
+                                                })]
+                                            })]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [
+                                                    new TextRun({
+                                                        text: `${participant.participant?.phone}`,
+                                                        size: 28,
+                                                        font: "Times New Roman"
+                                                    })
+                                                ]
+                                            })]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph({
+                                                children: [new TextRun({
+                                                    text: '',
+                                                    size: 28,
+                                                    font: "Times New Roman"
+                                                })]
+                                            })]
+                                        })
+                                    ]
+                                }))
+                            });
+                        });
+                    }
                 }
             });
 
@@ -809,10 +803,14 @@ class AdminController {
     }
 
     async editProfile(req, res, next) {
-        const { id, phone, telegramLink } = req.body;
+        const {
+            id,
+            phone,
+            telegramLink
+        } = req.body;
 
         try {
-            const profile = await Profile.findByPk(id);
+            const profile = await Profile.findOne({where: {userId: id}});
 
             if (!profile) {
                 return next(ErrorHandler.notFound('Профиль не найден'));
@@ -830,8 +828,12 @@ class AdminController {
     }
 
     async editParticipant(req, res, next) {
-        const { id, email, phone, telegramLink } = req.body;
-
+        const {
+            id,
+            email,
+            phone,
+            telegramLink
+        } = req.body;
         try {
             const participant = await Participant.findByPk(id);
 

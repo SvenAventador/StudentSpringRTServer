@@ -1,10 +1,15 @@
 const ErrorHandler = require("../errors/error");
-const {Participant, Profile, ParticipantComment} = require("../database");
-const {extname, resolve} = require("path");
+const {
+    Participant,
+    ParticipantComment, User, Profile
+} = require("../database");
+const {
+    extname,
+    resolve
+} = require("path");
 const uuid = require("uuid");
 const Validation = require("../func/validation");
 const moment = require("moment/moment");
-const e = require("express");
 
 class ParticipantController {
     async getOne(req, res, next) {
@@ -22,7 +27,12 @@ class ParticipantController {
         const {id} = req.query
 
         try {
-            const participants = await Participant.findAll({where: {profileId: id}, include: [ParticipantComment]})
+            const participants = await Participant.findAll({
+                where: {
+                    profileId: id
+                },
+                include: [ParticipantComment]
+            })
             return res.json(participants)
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
@@ -59,7 +69,7 @@ class ParticipantController {
 
             if (!allowedImageExtensions.includes(fileExtension))
                 return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: .jpg, .jpeg, .png или .gif!'))
-            documentImage = uuid.v4() + fileExtension
+            documentImage = uuid.v4() + '.jpg'
 
             try {
                 await positionOrStudyDocument.mv(resolve(__dirname, '..', 'static', 'img', documentImage))
@@ -67,6 +77,7 @@ class ParticipantController {
                 return next(ErrorHandler.internal(`Произошла ошибка во время сохранения изображения: ${error}`))
             }
         }
+
         try {
             if (!Validation.isString(surname))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректную фамилию!'))
@@ -84,14 +95,26 @@ class ParticipantController {
                 return next(ErrorHandler.conflict('Пожалуйста, выберите корректный пол!'))
             if (!Validation.isEmail(email))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректную почту!'))
-            if (!telegramLink.startsWith('https://t.me/'))
-                return next(ErrorHandler.conflict('Пожалуйста, введите корректную ссылку на аккаунт!'))
             if (!Validation.isString(placeOfStudyOfWork))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректное место работы!'))
             if (!Validation.isString(specialization))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректное место работы!'))
             if (!Validation.isString(req.body.placeOfStudyOfWork))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректную должность!'))
+
+            const existingTg = await Participant.findOne({where: {telegramLink}})
+            if (existingTg)
+                return next(ErrorHandler.conflict('Участник с таким телеграм аккаунтом уже существует!'))
+
+            const existingEmail = await Participant.findOne({where: {email}})
+            if (existingEmail)
+                return next(ErrorHandler.conflict('Участник с такой почтой уже существует!'))
+            const existringPhone = await Participant.findOne({where: {phone}})
+            if (existringPhone)
+                return next(ErrorHandler.conflict('Участник с таким телефоном уже существует!'))
+
+            const profile = await Profile.findOne({where: {userId: profileId}})
+
 
             const participant = await Participant.create({
                 surname,
@@ -101,13 +124,13 @@ class ParticipantController {
                 gender,
                 email,
                 phone,
-                telegramLink,
+                telegramLink: telegramLink.startsWith('https://t.me/') ? telegramLink : 'https://t.me/' + telegramLink,
                 placeOfStudyOfWork,
                 specialization,
                 positionOrStudyDocument: documentImage || positionOrStudyDocument,
                 participantStatusId,
                 accountStatusId,
-                profileId,
+                profileId: profile.id
             })
 
             return res.json(participant)
@@ -117,6 +140,7 @@ class ParticipantController {
     }
 
     async update(req, res, next) {
+        const {id} = req.query
         const {
             surname,
             name,
@@ -133,7 +157,7 @@ class ParticipantController {
             profileId
         } = req.body;
 
-        let positionOrStudyDocument = null;
+        let positionOrStudyDocument;
         if (req.files && req.files.positionOrStudyDocument) {
             positionOrStudyDocument = req.files.positionOrStudyDocument;
         } else {
@@ -148,7 +172,7 @@ class ParticipantController {
             if (!allowedImageExtensions.includes(fileExtension)) {
                 return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: .jpg, .jpeg, .png или .gif!'));
             }
-            documentImage = uuid.v4() + fileExtension;
+            documentImage = uuid.v4() + '.jpg';
 
             try {
                 await positionOrStudyDocument.mv(resolve(__dirname, '..', 'static', 'img', documentImage));
@@ -174,8 +198,6 @@ class ParticipantController {
                 return next(ErrorHandler.conflict('Пожалуйста, выберите корректный пол!'))
             if (!Validation.isEmail(email))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректную почту!'))
-            if (!telegramLink.startsWith('https://t.me/'))
-                return next(ErrorHandler.conflict('Пожалуйста, введите корректную ссылку на аккаунт!'))
             if (!Validation.isString(placeOfStudyOfWork))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректное место работы!'))
             if (!Validation.isString(specialization))
@@ -183,7 +205,7 @@ class ParticipantController {
             if (!Validation.isString(req.body.placeOfStudyOfWork))
                 return next(ErrorHandler.badRequest('Пожалуйста, введите корректную должность!'))
 
-            const participant = await Participant.findOne({where: {profileId}});
+            const participant = await Participant.findByPk(id)
             if (!participant) {
                 return next(ErrorHandler.notFound('Участник не найден!'));
             }
@@ -217,7 +239,7 @@ class ParticipantController {
                 gender,
                 email,
                 phone,
-                telegramLink,
+                telegramLink: telegramLink.startsWith('https://t.me/') ? telegramLink : 'https://t.me/' + telegramLink,
                 placeOfStudyOfWork,
                 specialization,
                 positionOrStudyDocument: documentImage || positionOrStudyDocument,

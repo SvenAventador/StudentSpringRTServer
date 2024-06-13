@@ -5,15 +5,19 @@ const {
 const ErrorHandler = require("../errors/error");
 const Validation = require('../func/validation')
 const uuid = require("uuid");
-const {Profile, User} = require("../database");
+const {Profile} = require("../database");
 const moment = require("moment");
 
 class ProfileController {
     async getOne(req, res, next) {
         const {id} = req.query
+
         try {
-            const user = await User.findByPk(id)
-            const profile = await Profile.findOne({where: {userId: user.id}})
+            const profile = await Profile.findOne({
+                where: {
+                    userId: id
+                }
+            })
             return res.json(profile)
         } catch (error) {
             return next(ErrorHandler.internal(`Непредвиденная ошибка: ${error}`))
@@ -22,7 +26,6 @@ class ProfileController {
 
     async edit(req, res, next) {
         const {
-            id,
             surname,
             name,
             patronymic,
@@ -31,6 +34,7 @@ class ProfileController {
             phone,
             telegramLink,
             placeOfStudyOfWork,
+            userId
         } = req.body
 
         let positionOrStudyDocument
@@ -46,8 +50,8 @@ class ProfileController {
 
             if (!allowedImageExtensions.includes(fileExtension))
                 return next(ErrorHandler.badRequest('Пожалуйста, загрузите файл в формате изображения: .jpg, .jpeg, .png или .gif!'))
-            documentImage = uuid.v4() + fileExtension
-
+            documentImage = uuid.v4() + '.jpg'
+            console.log(documentImage)
             try {
                 await positionOrStudyDocument.mv(resolve(__dirname, '..', 'static', 'img', documentImage))
             } catch (error) {
@@ -70,14 +74,14 @@ class ProfileController {
         if (!['Мужской', 'Женский'].includes(gender))
             return next(ErrorHandler.conflict('Пожалуйста, выберите корректный пол!'))
         if (!telegramLink.startsWith('https://t.me/'))
-            return next(ErrorHandler.conflict('Пожалуйста, введите корректную ссылку на аккаунт!'))
+            return next(ErrorHandler.conflict('Пожалуйста, введите корректную ссылку на телеграм аккаунт!'))
         if (!Validation.isString(placeOfStudyOfWork))
             return next(ErrorHandler.badRequest('Пожалуйста, введите корректное место работы!'))
         if (!Validation.isString(req.body.placeOfStudyOfWork))
             return next(ErrorHandler.badRequest('Пожалуйста, введите корректную должность!'))
 
         try {
-            let profile = await Profile.findByPk(id)
+            let profile = await Profile.findOne({where: {userId: userId}})
             if (!profile || profile.telegramLink !== telegramLink) {
                 const existingProfile = await Profile.findOne({where: {telegramLink}})
                 if (existingProfile) {
@@ -92,11 +96,8 @@ class ProfileController {
                 }
             }
 
-            const user = await User.findByPk(id)
-
             if (profile) {
                 await profile.update({
-                    id,
                     surname,
                     name,
                     patronymic,
@@ -106,12 +107,11 @@ class ProfileController {
                     telegramLink,
                     placeOfStudyOfWork,
                     positionOrStudyDocument: documentImage || positionOrStudyDocument,
-                    userId: user.id
+                    userId
                 })
                 return res.json(profile)
             } else {
                 profile = await Profile.create({
-                    id,
                     surname,
                     name,
                     patronymic,
@@ -121,7 +121,7 @@ class ProfileController {
                     telegramLink,
                     placeOfStudyOfWork,
                     positionOrStudyDocument: documentImage || positionOrStudyDocument,
-                    userId: user.id
+                    userId
                 })
                 return res.json(profile)
             }

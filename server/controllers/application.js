@@ -8,11 +8,15 @@ const {
     FormOfParticipation,
     Participant,
     Direction,
-    ApplicationStatus
-}
-    = require("../database");
+    ApplicationStatus,
+    Profile, ApplicationComment
+} = require("../database");
 const moment = require("moment");
-const {Op, Sequelize, col} = require("sequelize");
+const {
+    Op,
+    Sequelize,
+    col
+} = require("sequelize");
 
 class ApplicationController {
     async getOne(req, res, next) {
@@ -49,13 +53,13 @@ class ApplicationController {
     async getAll(req, res, next) {
         const {profileId} = req.query
         try {
+            const profile = await Profile.findOne({where: {userId: profileId}})
             const allVocal = await Application.findAll({
                 where: {
                     directionId: 1,
-                    profileId: profileId,
+                    profileId: profile.id,
                     [Op.and]: [
                         Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                        Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
                     ]
                 },
                 include: [
@@ -78,16 +82,18 @@ class ApplicationController {
                     },
                     {
                         model: ApplicationStatus
+                    },
+                    {
+                        model: ApplicationComment
                     }
                 ]
             })
             const allInstrumental = await Application.findAll({
                 where: {
                     directionId: 2,
-                    profileId: profileId,
+                    profileId: profile.id,
                     [Op.and]: [
                         Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                        Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
                     ]
                 },
                 include: [
@@ -116,10 +122,9 @@ class ApplicationController {
             const allDances = await Application.findAll({
                 where: {
                     directionId: 3,
-                    profileId: profileId,
+                    profileId: profile.id,
                     [Op.and]: [
                         Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                        Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
                     ]
                 },
                 include: [
@@ -148,10 +153,9 @@ class ApplicationController {
             const allTheatre = await Application.findAll({
                 where: {
                     directionId: 4,
-                    profileId: profileId,
+                    profileId: profile.id,
                     [Op.and]: [
                         Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                        Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
                     ]
                 },
                 include: [
@@ -180,10 +184,9 @@ class ApplicationController {
             const allOriginalGenre = await Application.findAll({
                 where: {
                     directionId: 5,
-                    profileId: profileId,
+                    profileId: profile.id,
                     [Op.and]: [
                         Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                        Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
                     ]
                 },
                 include: [
@@ -212,10 +215,9 @@ class ApplicationController {
             const allFashion = await Application.findAll({
                 where: {
                     directionId: 6,
-                    profileId: profileId,
+                    profileId: profile.id,
                     [Op.and]: [
                         Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                        Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
                     ]
                 },
                 include: [
@@ -244,10 +246,9 @@ class ApplicationController {
             const allMedia = await Application.findAll({
                 where: {
                     directionId: 7,
-                    profileId: profileId,
+                    profileId: profile.id,
                     [Op.and]: [
                         Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                        Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
                     ]
                 },
                 include: [
@@ -276,10 +277,9 @@ class ApplicationController {
             const allVideo = await Application.findAll({
                 where: {
                     directionId: 8,
-                    profileId: profileId,
+                    profileId: profile.id,
                     [Op.and]: [
                         Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                        Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
                     ]
                 },
                 include: [
@@ -308,10 +308,9 @@ class ApplicationController {
             const allArt = await Application.findAll({
                 where: {
                     directionId: 9,
-                    profileId: profileId,
+                    profileId: profile.id,
                     [Op.and]: [
                         Sequelize.where(col('application_participants'), { [Op.ne]: null }),
-                        Sequelize.where(col('application_technical_groups'), { [Op.ne]: null })
                     ]
                 },
                 include: [
@@ -382,21 +381,24 @@ class ApplicationController {
         if (existingName)
             return next(ErrorHandler.conflict('Данное название уже сущесвутет в системе. Пожалуйста, придумайте другое название!'))
         const existingTeamName = await Application.findOne({where: {teamName}})
-        if (existingTeamName)
+        console.log(existingTeamName)
+        if (parseInt(formParticipationId) !== 1 &&  existingTeamName)
             return next(ErrorHandler.conflict('Коллектив с таким названием уже участвует!'))
-        if (!moment(duration, 'mm:ss', true).isValid())
-            return next(ErrorHandler.badRequest('Пожалуйста, введите корректную продолжительность номера!'))
+        if (!moment(duration, 'mm:ss', true).isValid() &&
+            (moment.duration(duration, 'mm:ss').asMinutes() <= 0 ||
+            moment.duration(duration, 'mm:ss').asMinutes() >= 15)) {
+            return next(ErrorHandler.badRequest('Пожалуйста, введите корректную продолжительность номера! Продолжительность номера не более 15 минут!'));
+        }
         if (!['Профильная', 'Непрофильная'].includes(category))
             return next(ErrorHandler.badRequest('Пожалуйста, выберите корректную категорию номера!'))
         if (!Validation.isString(googleCloudLink) || !googleCloudLink.includes('https://drive.google.com/drive/'))
             return next(ErrorHandler.badRequest('Пожалуйста, введите корректную ссылку на Google Cloud (Гугл Диск)!'))
         if (!Validation.isString(contactPerson) || contactPerson.split(' ').length < 2)
             return next(ErrorHandler.badRequest('Пожалуйста, введите корректное ФИО контактного лица!'))
-        if (!Validation.isString(telegramContactPerson) || !telegramContactPerson.includes('https://t.me/'))
-            return next(ErrorHandler.badRequest('Пожалуйста, введите корректную ссылку на Telegram аккаунт!'))
         if (!Validation.isString(fioDirector) || fioDirector.split(' ').length < 2)
             return next(ErrorHandler.badRequest('Пожалуйста, введите корректное ФИО руководителя!'))
 
+        const profile = await Profile.findOne({where: {userId: profileId}})
         try {
             const application = await Application.create({
                 name,
@@ -405,10 +407,10 @@ class ApplicationController {
                 googleCloudLink,
                 contactPerson,
                 phoneContactPerson,
-                telegramContactPerson,
+                telegramContactPerson: telegramContactPerson.startsWith('https://t.me/') ? telegramContactPerson : 'https://t.me/' + telegramContactPerson,
                 fioDirector,
-                teamName,
-                profileId,
+                teamName: teamName ?? null,
+                profileId: profile.id,
                 applicationStatusId,
                 directionId,
                 nominationId,

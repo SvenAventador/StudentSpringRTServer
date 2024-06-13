@@ -9,11 +9,11 @@ const Profile = sequelize.define('profile', {
     },
     surname: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
     },
     name: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     patronymic: {
         type: DataTypes.STRING,
@@ -21,25 +21,25 @@ const Profile = sequelize.define('profile', {
     },
     birthday: {
         type: DataTypes.DATEONLY,
-        allowNull: false
+        allowNull: true
     },
     gender: {
         type: DataTypes.ENUM('Мужской', 'Женский'),
-        allowNull: false
+        allowNull: true
     },
     phone: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         unique: true
     },
     telegramLink: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         unique: true
     },
     placeOfStudyOfWork: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     positionOrStudyDocument: {
         type: DataTypes.TEXT,

@@ -18,7 +18,7 @@ const {
     Nomination,
     FormOfParticipation,
     ParticipantStatus,
-    Role
+    Role, User
 } = require("./database");
 
 const app = express()
@@ -187,6 +187,157 @@ const start = async () => {
             }
         ]
 
+        const userAdmin = [
+            {
+                email: "adminAccount1@gmail.com",
+                password: "$2b$05$DL/gZ1.GbnAV7VpmMvZVEeyBc/tM3OXDYLjP61v8SXHJR.QYnzxMy"
+            },
+            {
+                email: "adminAccount2@gmail.com",
+                password: "$2b$05$ec6mrsLM6FJTIp9VUxyYcu95bTUCZC.8hSY3b5a9Nh3TuYHU8KmWm"
+            },
+            {
+                email: "adminAccount3@gmail.com",
+                password: "$2b$05$97rVOsGs2FsUuj8QkubA9eJTfcGP4ArvpkXdPIOS0FAq/CPaycxwe"
+            },
+            {
+                email: "adminAccount4@gmail.com",
+                password: "$2b$05$XVctNMb9oatXJw8FmltiBORNsq/XLUz83jbjJ3sbKkWx0UuHa0gX2"
+            },
+            {
+                email: "adminAccount5@gmail.com",
+                password: "$2b$05$ZN7GrznhR5A/J0O/9nGJ3u8S5lqkeWBjupTvPFnKAJw2dVqEA6Jae"
+            },
+            {
+                email: "adminAccount6@gmail.com",
+                password: "$2b$05$/eNqDE1Q/hzTa8aBo3SyBeA5gDXEIkX9PPa/RscOkv3xDiJWsw/lK"
+            },
+            {
+                email: "adminAccount7@gmail.com",
+                password: "$2b$05$roinLXOH8e5der.942sCMuAHFzDbDXgsfWWTMNG4i5a2pHHxHsJoi"
+            },
+            {
+                email: "adminAccount8@gmail.com",
+                password: "$2b$05$WAo4GUHGVmwlh/aF9nqIoO/MyQRgM/PFUV6JevUhuS3.zlVNtmoyO"
+            },
+            {
+                email: "adminAccount9@gmail.com",
+                password: "$2b$05$k/1V6ZBIQMVQTkN1QcdZyOYg6gCpTTv5HlA/fGxgJ5ctfPvFWKhOW"
+            },
+            {
+                email: "adminAccount10@gmail.com",
+                password: "$2b$05$.v307z/AcAFcGX2QqPupIOgO0DUZVtggql.DNF1s0J4c1QPXk/Xky"
+            },
+            {
+                email: "adminAccount11@gmail.com",
+                password: "$2b$05$ZZawB7pUDkqzzI62DDM3uuqN71X0hysIWbFyRXHYodoqLMLdQN.Fe"
+            },
+            {
+                email: "adminAccount12@gmail.com",
+                password: "$2b$05$1YXg53/jiMvtlOEPGBONje3o0PL0V5AwBtAcQqtxPxIY3NsECiqQC"
+            },
+            {
+                email: "adminAccount13@gmail.com",
+                password: "$2b$05$ePjXhNNT61QRqqPUEk/uPup0i/4HwYe3YIP698IWGoLL1okfsRLva"
+            },
+            {
+                email: "adminAccount14@gmail.com",
+                password: "$2b$05$OA0VaN.snFPFvFvUONFRQ.3KBoDeLN/9/zQOB7YFTqM4OBiCaQYji"
+            },
+            {
+                email: "adminAccount15@gmail.com",
+                password: "$2b$05$XsEzxPdNlVl9bL8f4S0zyuDqs/7/ku3vYqkVxbcEv42r6X9QKswfi"
+            }
+        ];
+
+        const userInspector = [
+            {
+                email: "inspectorAccount1@gmail.com",
+                password: "$2b$05$OEdkdBiG/ai3h2G6A9kTBubMTkxnVqoofU0aVsRF6rWCaZwagEk4y"
+            },
+            {
+                email: "inspectorAccount2@gmail.com",
+                password: "$2b$05$r2OcG9Rhj7J6cIZvASgJR.bcG/6jugHrLRArLwD21aP4zb7.899v2"
+            },
+            {
+                email: "inspectorAccount3@gmail.com",
+                password: "$2b$05$.E6KCsChKY3Qq/s.7.JNXem8zHmEKsmw3uKoIiXakBucovO4QMA82"
+            },
+            {
+                email: "inspectorAccount4@gmail.com",
+                password: "$2b$05$fQASF1aG2szV1Np6r48e/.YfDRx446tOUdKW7wITXSutrridFMcra"
+            },
+            {
+                email: "inspectorAccount5@gmail.com",
+                password: "$2b$05$9txAg6AqImFl3OEG3bA1duifiNwVdbegCdYRHCuTq8xoa1htfU27G"
+            },
+            {
+                email: "inspectorAccount6@gmail.com",
+                password: "$2b$05$oAzr8hhL4chdRvTepBVYq.7u13.gnGjx/JzBZEXD1eI4JVu2xfg4S"
+            },
+            {
+                email: "inspectorAccount7@gmail.com",
+                password: "$2b$05$TVpw5spRu10ieBNTKDZ/hu/fHKPRNBi5BXf5nOBScQdeBc7Gxl2QG"
+            },
+            {
+                email: "inspectorAccount8@gmail.com",
+                password: "$2b$05$TucCgv0.2NuXw5WJDz9miOAxPn6zCszO877WFZkpzPhpAOHZGG7q."
+            },
+            {
+                email: "inspectorAccount9@gmail.com",
+                password: "$2b$05$lEUD7SWvnI9OKmtqo0OareE0SKrLoWlvUDMUi.GDU8gfrP8lnNyj2"
+            },
+            {
+                email: "inspectorAccount10@gmail.com",
+                password: "$2b$05$gLW/fCQxfVuKtYk1izUwx.465/zohJo3wHLS5r42q3zoavnbHJFIq"
+            },
+            {
+                email: "inspectorAccount11@gmail.com",
+                password: "$2b$05$1rW13NlsIubiUSErDrxDYuKArO8P3lef/jXW8plbLM9tkONK03lvO"
+            },
+            {
+                email: "inspectorAccount12@gmail.com",
+                password: "$2b$05$cnlVYRsDivyXajxa0.zhNOyC1NPVFL5okcTDAAFWnVCt6AB.10zCW"
+            },
+            {
+                email: "inspectorAccount13@gmail.com",
+                password: "$2b$05$7vPRALIEjmKloM88H3CvHeOBRzWAKlWITz4H6QqNgX02G04ziHfcm"
+            },
+            {
+                email: "inspectorAccount14@gmail.com",
+                password: "$2b$05$J79GT6SSZDECl7rHrfoqyujxgYLuWRFc.3ZOoHKAGXjaKdkIh.7hm"
+            },
+            {
+                email: "inspectorAccount15@gmail.com",
+                password: "$2b$05$EfiKpdu0Vqo1AO08ENBA1.n/fpmA.kcx2Raz4MmuYyyXrgiwDAGSO"
+            }
+        ];
+
+        try {
+            for (const user of userAdmin) {
+                await User.create({
+                    email: user.email,
+                    password: user.password,
+                    roleId: 2
+                });
+            }
+            console.log('Users have been seeded successfully');
+        } catch (error) {
+            console.error('Error seeding users:', error);
+        }
+
+        try {
+            for (const inspector of userInspector) {
+                await User.create({
+                    email: inspector.email,
+                    password: inspector.password,
+                    roleId: 3
+                });
+            }
+            console.log('Inspector accounts have been seeded successfully');
+        } catch (error) {
+            console.error('Error seeding inspector accounts:', error);
+        }
         for (const data of directionData) {
             const { direction, nominations } = data;
 

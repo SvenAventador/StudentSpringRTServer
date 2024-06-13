@@ -3,7 +3,7 @@ const ErrorHandler = require("../errors/error")
 const bcrypt = require("bcrypt")
 const {
     User,
-    Role
+    Role, Profile
 } = require("../database")
 
 class AuthController {
@@ -30,6 +30,10 @@ class AuthController {
                 email,
                 password: await bcrypt.hash(password, 5),
                 roleId
+            })
+
+            await Profile.create({
+                userId: user.id
             })
 
             const role = await Role.findByPk(roleId)
